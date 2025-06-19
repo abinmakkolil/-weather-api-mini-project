@@ -1,0 +1,250 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Weather</title>
+    <style>
+        /* Global Resets and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6DD5FA, #2980B9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        /* Weather App Container */
+        .weather-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .weather-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 2.2em;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+
+        /* Input and Button Styling */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        #cityInput {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        #cityInput:focus {
+            border-color: #2980B9;
+        }
+
+        #searchButton {
+            padding: 12px 20px;
+            background-color: #3498DB;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        #searchButton:hover {
+            background-color: #2980B9;
+            transform: scale(1.05);
+        }
+
+        #searchButton:active {
+            transform: scale(0.98);
+        }
+
+        /* Weather Info Display */
+        .weather-info {
+            margin-top: 20px;
+            min-height: 100px; /* Reserve space to prevent layout shifts */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #locationName {
+            font-size: 1.5em;
+            color: #34495e;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        #temperatureDisplay {
+            font-size: 3em;
+            color: #2980B9;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        #weatherCondition {
+            font-size: 1.1em;
+            color: #555;
+            text-transform: capitalize;
+        }
+        
+        .weather-icon {
+            width: 64px; /* Default icon size from WeatherAPI */
+            height: 64px;
+            margin-bottom: 5px;
+        }
+
+        #errorMessage {
+            color: #e74c3c;
+            margin-top: 15px;
+            font-weight: 500;
+        }
+
+        /* Loading Spinner */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none; /* Hidden by default */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+<script defer="" data-domain="knowyourtemperature.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script><script type="text/javascript" src="https://tiiny.host/ad-script.js"></script><script defer="" data-domain="knowyourtemperature.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script><script type="text/javascript" src="https://tiiny.host/ad-script.js"></script></head>
+<body><div style="position: fixed !important; bottom: 0px !important; width: 100% !important; height: 55px !important; z-index: 9999 !important;"><a href="https://tiiny.host?ref=free-site"><div style="padding:10px!important;height:55px;text-align:center;background:rgb(220,137,232)!important;background:linear-gradient(141deg,rgba(220,137,232,1)0%,rgba(144,64,204,1)100%)!important"><img style="height:35px!important;width:auto!important" src="https://tiiny.host/assets/img/ad.png" alt="tiiny.host"></div></a></div>
+
+    <div class="weather-container">
+        <h1>Weather Now</h1>
+        <div class="input-group">
+            <input type="text" id="cityInput" placeholder="Enter city name...">
+            <button id="searchButton">Search</button>
+        </div>
+        <div class="loader" id="loader" style="display: block;"></div>
+        <div class="weather-info" id="weatherInfoDisplay" style="display: none;">
+            <img src="" alt="Weather icon" class="weather-icon" id="weatherIcon" style="display:none;">
+            <div id="locationName"></div>
+            <div id="temperatureDisplay"></div>
+            <div id="weatherCondition"></div>
+            <div id="errorMessage"></div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = '89b8566dd0334dd98f223914252805'; // Your API Key
+        const cityInput = document.getElementById('cityInput');
+        const searchButton = document.getElementById('searchButton');
+        
+        const weatherInfoDisplay = document.getElementById('weatherInfoDisplay');
+        const locationNameDisplay = document.getElementById('locationName');
+        const temperatureDisplay = document.getElementById('temperatureDisplay');
+        const weatherConditionDisplay = document.getElementById('weatherCondition');
+        const weatherIcon = document.getElementById('weatherIcon');
+        const errorMessageDisplay = document.getElementById('errorMessage');
+        const loader = document.getElementById('loader');
+
+        // Function to clear previous weather data and error messages
+        function clearWeatherData() {
+            locationNameDisplay.textContent = '';
+            temperatureDisplay.textContent = '';
+            weatherConditionDisplay.textContent = '';
+            weatherIcon.src = '';
+            weatherIcon.style.display = 'none';
+            errorMessageDisplay.textContent = '';
+        }
+
+        async function fetchWeather() {
+            const city = cityInput.value.trim();
+            if (!city) {
+                errorMessageDisplay.textContent = 'Please enter a city name.';
+                clearWeatherData(); // Clear any old data
+                return;
+            }
+
+            clearWeatherData();
+            loader.style.display = 'block'; // Show loader
+            weatherInfoDisplay.style.display = 'none'; // Hide weather info area
+
+            const apiUrl = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(city)}&aqi=no`;
+
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                loader.style.display = 'none'; // Hide loader
+                weatherInfoDisplay.style.display = 'flex'; // Show weather info area
+
+                if (response.ok && data.current) {
+                    locationNameDisplay.textContent = `${data.location.name}, ${data.location.country}`;
+                    temperatureDisplay.textContent = `${Math.round(data.current.temp_c)}°C`;
+                    weatherConditionDisplay.textContent = data.current.condition.text;
+                    
+                    // WeatherAPI provides full URL for icon, ensure it's HTTPS
+                    if (data.current.condition.icon) {
+                        weatherIcon.src = `https:${data.current.condition.icon}`;
+                        weatherIcon.alt = data.current.condition.text;
+                        weatherIcon.style.display = 'block';
+                    }
+
+                } else if (data.error) {
+                    errorMessageDisplay.textContent = data.error.message || 'Could not fetch weather data. Please try again.';
+                } else {
+                    errorMessageDisplay.textContent = 'An unknown error occurred.';
+                }
+            } catch (error) {
+                loader.style.display = 'none'; // Hide loader
+                weatherInfoDisplay.style.display = 'flex'; // Show weather info area
+                console.error('Error fetching weather:', error);
+                errorMessageDisplay.textContent = 'Failed to connect to the weather service. Check your network.';
+            }
+        }
+
+        searchButton.addEventListener('click', fetchWeather);
+        cityInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                fetchWeather();
+            }
+        });
+
+        // Optional: Load default weather on page load (e.g., for a default city or user's location if you implement geolocation)
+        // For now, let's keep it clean and require user input.
+        // Example: cityInput.value = "London"; fetchWeather(); 
+
+    </script>
+
+
+</body></html>
